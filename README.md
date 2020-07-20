@@ -15,7 +15,7 @@ const gallery = {
   id: 'programming',
   isMinser: false,
 };
-/* Fetch 101 documents from gallery from frist page */
+/* Fetch 101 number of documents from frist page */
 let documentHeaders = await Crawler.documentHeaders({ gallery, page=1, limit=101 });
 documentHeaders.length === 101 // true
 
