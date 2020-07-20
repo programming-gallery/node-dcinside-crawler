@@ -15,11 +15,11 @@ const gallery = {
   id: 'programming',
   isMinser: false,
 };
-/* Fetch 101 number of documents from frist page */
+/* Fetch 101 number of documents start from frist page */
 let documentHeaders = await Crawler.documentHeaders({ gallery, page=1, limit=101 });
 documentHeaders.length === 101 // true
 
-/* Fetch all new published documents from the last document */
+/* Fetch all new published documents since the last document */
 let newPublishedDocumentHeaders = await Crawler.documentHeaders({ gallery, lastDocumentId: documentHeaders[0].id })
 
 documentHeaders[0];
@@ -41,7 +41,7 @@ documentHeaders[0];
 /* Fetch all comments of document */
 let comments = await Crawler.comments({ document: documentHeaders[0] })
 
-/* Fetch all new published comments from the last comment */
+/* Fetch all new published comments since the last comment */
 let newPublishedComments = await Crawler.comments({ document: documentHeaders[0], lastCommentId: comments[0].id })
 
 comments[0];
