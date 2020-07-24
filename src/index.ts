@@ -113,60 +113,72 @@ export type GalleryIndex = Pick<Gallery, 'id' | 'isMiner'> & Partial<Gallery>;
 class RawCrawler {
   e_s_n_o = '';
   async weeklyActiveMajorGalleryIndexes(): Promise<GalleryIndex[]> {
-    let callbackParam = `jQuery32109002533932178827_${new Date().getTime()}`;
+    const callbackParam = `jQuery32109002533932178827_${new Date().getTime()}`;
     const res = await request.get(
-      `https://json2.dcinside.com/json0/gallmain/gallery_hot.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`
-      ,{ headers: { Referer: 'https://gall.dcinside.com/' } });
-    if(res.data == null || !res.data.startsWith(callbackParam))
+      `https://json2.dcinside.com/json0/gallmain/gallery_hot.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`,
+      {headers: {Referer: 'https://gall.dcinside.com/'}}
+    );
+    if (!res.data || !res.data.startsWith(callbackParam))
       throw Error(`fail to parse ${res.data}`);
-    return JSON.parse(res.data.trim().slice(callbackParam.length + 1, -1))
-      .map((item: any) => ({ 
-        id: item.id,
-        isMiner: false,
-        name: item.ko_name
-      }) as GalleryIndex)
+    return JSON.parse(res.data.trim().slice(callbackParam.length + 1, -1)).map(
+      (item: any) =>
+        ({
+          id: item.id,
+          isMiner: false,
+          name: item.ko_name,
+        } as GalleryIndex)
+    );
   }
   async weeklyActiveMinorGalleryIndexes(): Promise<GalleryIndex[]> {
-    let callbackParam = `json_mgall_hot`;
+    const callbackParam = 'json_mgall_hot';
     const res = await request.get(
-      `https://json2.dcinside.com/json0/mgallmain/mgallery_hot.php?jsoncallback=${callbackParam}`
-      ,{ headers: { Referer: 'https://gall.dcinside.com/m' } });
-    if(res.data == null || !res.data.startsWith(callbackParam))
+      `https://json2.dcinside.com/json0/mgallmain/mgallery_hot.php?jsoncallback=${callbackParam}`,
+      {headers: {Referer: 'https://gall.dcinside.com/m'}}
+    );
+    if (!res.data || !res.data.startsWith(callbackParam))
       throw Error(`fail to parse ${res.data}`);
-    return JSON.parse(res.data.trim().slice(callbackParam.length + 1, -1))
-      .map((item: any) => ({
-        id: item.id,
-        isMiner: true,
-        name: item.ko_name
-      }) as GalleryIndex)
+    return JSON.parse(res.data.trim().slice(callbackParam.length + 1, -1)).map(
+      (item: any) =>
+        ({
+          id: item.id,
+          isMiner: true,
+          name: item.ko_name,
+        } as GalleryIndex)
+    );
   }
   async realtimeActiveMinorGalleryIndexes(): Promise<GalleryIndex[]> {
-    let callbackParam = `jQuery32107665147071438096_${new Date().getTime()}`;
+    const callbackParam = `jQuery32107665147071438096_${new Date().getTime()}`;
     const res = await request.get(
-      `https://json2.dcinside.com/json1/mgallmain/mgallery_ranking.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`
-      ,{ headers: { Referer: 'https://gall.dcinside.com/m' } });
-    if(res.data == null || !res.data.startsWith(callbackParam))
+      `https://json2.dcinside.com/json1/mgallmain/mgallery_ranking.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`,
+      {headers: {Referer: 'https://gall.dcinside.com/m'}}
+    );
+    if (!res.data || !res.data.startsWith(callbackParam))
       throw Error(`fail to parse ${res.data}`);
-    return JSON.parse(res.data.trim().slice(callbackParam.length + 1, -1))
-      .map((item: any) => ({
-        id: item.id,
-        isMiner: true,
-        name: item.ko_name,
-      }) as GalleryIndex);
+    return JSON.parse(res.data.trim().slice(callbackParam.length + 1, -1)).map(
+      (item: any) =>
+        ({
+          id: item.id,
+          isMiner: true,
+          name: item.ko_name,
+        } as GalleryIndex)
+    );
   }
   async realtimeActiveMajorGalleryIndexes(): Promise<GalleryIndex[]> {
-    let callbackParam = `jQuery3210837750950307798_${new Date().getTime()}`;
+    const callbackParam = `jQuery3210837750950307798_${new Date().getTime()}`;
     const res = await request.get(
-      `https://json2.dcinside.com/json1/ranking_gallery.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`
-      ,{ headers: { Referer: 'https://gall.dcinside.com/' } });
-    if(res.data == null || !res.data.startsWith(callbackParam))
+      `https://json2.dcinside.com/json1/ranking_gallery.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`,
+      {headers: {Referer: 'https://gall.dcinside.com/'}}
+    );
+    if (!res.data || !res.data.startsWith(callbackParam))
       throw Error(`fail to parse ${res.data}`);
-    return JSON.parse(res.data.trim().slice(callbackParam.length + 1, -1))
-      .map((item: any) => ({
-        id: item.id,
-        isMiner: false,
-        name: item.ko_name,
-      }) as GalleryIndex);
+    return JSON.parse(res.data.trim().slice(callbackParam.length + 1, -1)).map(
+      (item: any) =>
+        ({
+          id: item.id,
+          isMiner: false,
+          name: item.ko_name,
+        } as GalleryIndex)
+    );
   }
   async documentHeaders(
     gallery: GalleryIndex,
@@ -326,15 +338,15 @@ export default class Crawler {
     return comments.filter(comm => comm.id > lastCommentId);
   }
   async activeGalleryIndexes(): Promise<GalleryIndex[]> {
-    let reses = await Promise.all([
+    const reses = await Promise.all([
       this.rawCrawler.realtimeActiveMajorGalleryIndexes(),
       this.rawCrawler.realtimeActiveMinorGalleryIndexes(),
-      this.rawCrawler.weeklyActiveMajorGalleryIndexes(), 
-      this.rawCrawler.weeklyActiveMinorGalleryIndexes()]);
-    let galleryById: {[id: string]: GalleryIndex} = {};
-    for(let res of reses)
-      for(let gallery of res) 
-        galleryById[gallery.id] = gallery;
+      this.rawCrawler.weeklyActiveMajorGalleryIndexes(),
+      this.rawCrawler.weeklyActiveMinorGalleryIndexes(),
+    ]);
+    const galleryById: {[id: string]: GalleryIndex} = {};
+    for (const res of reses)
+      for (const gallery of res) galleryById[gallery.id] = gallery;
     return Object.values(galleryById);
   }
 }

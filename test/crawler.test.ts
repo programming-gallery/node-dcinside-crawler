@@ -45,7 +45,7 @@ describe('document headers', () => {
     expect(res1[0].id).toBeGreaterThanOrEqual(res2[0].id + 100);
   });
   it('comments', async () => {
-    let res = await crawler.comments({
+    const res = await crawler.comments({
       document: {
         gallery: {id: 'event_voicere', isMiner: false},
         id: 2251593,
@@ -54,7 +54,7 @@ describe('document headers', () => {
     expect(res).not.toBe(null);
   });
   it('active gallries', async () => {
-    let res = await crawler.activeGalleryIndexes();
+    const res = await crawler.activeGalleryIndexes();
     console.log(res);
     expect(res).not.toBe(null);
   });
