@@ -11,16 +11,17 @@ bower install dcinside-crawler --save
 
 ```typescript
 import Crawler from 'dcinside-crawler';
+const crawler = new Crawler();
 const gallery = {
   id: 'programming',
   isMinser: false,
 };
 /* Fetch 101 number of documents start from frist page */
-let documentHeaders = await Crawler.documentHeaders({ gallery, page=1, limit=101 });
+let documentHeaders = await crawler.documentHeaders({ gallery, page=1, limit=101 });
 documentHeaders.length === 101 // true
 
 /* Fetch all new published documents since the last document */
-let newPublishedDocumentHeaders = await Crawler.documentHeaders({ gallery, lastDocumentId: documentHeaders[0].id })
+let newPublishedDocumentHeaders = await crawler.documentHeaders({ gallery, lastDocumentId: documentHeaders[0].id })
 
 documentHeaders[0];
 /* 
@@ -39,10 +40,10 @@ documentHeaders[0];
  */
 
 /* Fetch all comments of document */
-let comments = await Crawler.comments({ document: documentHeaders[0] })
+let comments = await crawler.comments({ document: documentHeaders[0] })
 
 /* Fetch all new published comments since the last comment */
-let newPublishedComments = await Crawler.comments({ document: documentHeaders[0], lastCommentId: comments[0].id })
+let newPublishedComments = await crawler.comments({ document: documentHeaders[0], lastCommentId: comments[0].id })
 
 comments[0];
 /* 
@@ -53,14 +54,27 @@ comments[0];
  *  createdAt: new Date('2020-01-01T00:00:00Z'),
  *  document: { gallery: {id: 'programming', isMinser: false}, id: 10002 },
  *  createdAt: new Date('2020-01-01T00:00:00Z'),
- *  voiceCopyId?: undefined,
- *  contents?: undefined,
- *  dccon?: Dccon{ 
+ *  contents?: undefined,     // set if this is text comment
+ *  voiceCopyId?: undefined, // set if this is voice comment
+ *  dccon?: Dccon{          //set if this is dccon
  *    dcconName: '1';
  *    dcconPackageId: 'aspfhj3h98h9haos';
  *    imageUrl: 'https://img.dcinside.com/...',
  *  },
  * }
+ */
+
+/* Fetch active gallery list(sorted by following order: major realtime, minor realtime, major weekly, minor weekly) */
+let activeGalleryIndexes = await crawler.activeGalleryIndexes();
+
+activeGalleryIndexes[0];
+/*
+ * GalleryIndex { 
+ *  id: 'twiceyou', 
+ *  isMiner: true, 
+ *  name: '트와이스 유튜브' 
+ * }
+ *
  */
 ```
 
