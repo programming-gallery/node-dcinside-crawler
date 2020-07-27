@@ -2,6 +2,21 @@ import 'core-js';
 import Crawler from '../src/index';
 describe('document headers', () => {
   const crawler = new Crawler();
+  it('type check', async() => {
+    const res = await crawler.documentHeaders({
+      gallery: {id: 'programming', isMiner: false},
+    });
+    expect(res[0].createdAt instanceof Date).toBe(true);
+    expect(typeof(res[0].id)).toBe('number');
+    expect(typeof(res[0].commentCount)).toBe('number');
+    expect(typeof(res[0].hasImage)).toBe('boolean');
+  });
+  it('timezone check', async() => {
+    const res = await crawler.documentHeaders({
+      gallery: {id: 'baseball_new9', isMiner: false},
+    });
+    expect(Math.abs(new Date().getTime() - res[0].createdAt.getTime())).toBeLessThanOrEqual(3*60*60*1000);
+  });
   it('first page', async () => {
     const res = await crawler.documentHeaders({
       gallery: {id: 'programming', isMiner: false},
@@ -55,7 +70,6 @@ describe('document headers', () => {
   });
   it('active gallries', async () => {
     const res = await crawler.activeGalleryIndexes();
-    console.log(res);
     expect(res).not.toBe(null);
   });
 });
