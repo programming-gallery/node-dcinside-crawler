@@ -14,11 +14,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const request_1 = __importDefault(require("./request"));
 const x_ray_1 = __importDefault(require("x-ray"));
+const koreaDateParse = (val) => {
+    let date = new Date(val);
+    return new Date(date.getTime() + (date.getTimezoneOffset() + 540) * 60 * 1000);
+};
 const xray = x_ray_1.default({
     filters: {
         number: val => parseInt(val.replace(/[\D^.]/g, '') || 0),
         lastClass: val => val.split(' ').pop(),
-        date: val => new Date(val),
     },
 });
 class RawCrawler {
@@ -91,7 +94,7 @@ class RawCrawler {
                     authorName: '.gall_writer@data-nick',
                     authorIp: '.gall_writer@data-ip',
                     authorId: '.gall_writer@data-uid',
-                    createdAt: '.gall_date@title | date',
+                    createdAt: '.gall_date@title',
                     viewCount: '.gall_count | number',
                     likeCount: '.gall_recommend | number',
                 },
@@ -101,6 +104,7 @@ class RawCrawler {
                 row.hasVideo = row.class.endsWith('movie');
                 row.isRecommend = row.class.startsWith('icon_recom');
                 row.gallery = gallery;
+                row.createdAt = koreaDateParse(row.createdAt);
                 row.author = row.authorId
                     ? { nickname: row.authorName, id: row.authorId }
                     : { nickname: row.authorName, ip: row.authorIp };
@@ -139,7 +143,7 @@ class RawCrawler {
                         : { ip: comm.ip, nickname: comm.name },
                     id: parseInt(comm.no),
                     parent: comm.depth !== 0 ? lastComment : undefined,
-                    createdAt: new Date(comm.reg_date),
+                    createdAt: koreaDateParse(comm.reg_date),
                     document: doc,
                 };
                 if (comm.depth === 0)

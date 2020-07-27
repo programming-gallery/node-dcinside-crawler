@@ -17,6 +17,12 @@ describe('document headers', () => {
     });
     expect(Math.abs(new Date().getTime() - res[0].createdAt.getTime())).toBeLessThanOrEqual(3*60*60*1000);
   });
+  it('minor gallery first page', async () => {
+    const res = await crawler.documentHeaders({
+      gallery: {id: 'aoegame', isMiner: true },
+    });
+    expect(res.length).toBe(100);
+  })
   it('first page', async () => {
     const res = await crawler.documentHeaders({
       gallery: {id: 'programming', isMiner: false},

@@ -190,7 +190,7 @@ class RawCrawler {
   ): Promise<DocumentHeader[]> {
     const res = await request.get(
       `https://gall.dcinside.com${
-        gallery.isMiner ? '/mgallery' : '/'
+        gallery.isMiner ? '/mgallery/' : '/'
       }board/lists?id=${gallery.id}&list_num=100&page=${page}`
     );
     if (!this.e_s_n_o)
