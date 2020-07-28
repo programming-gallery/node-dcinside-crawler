@@ -2,6 +2,7 @@ import 'core-js';
 import Crawler from '../src/index';
 describe('document headers', () => {
   const crawler = new Crawler();
+  const slowCrawler = new Crawler(1, 10);
   it('type check', async() => {
     const res = await crawler.documentHeaders({
       gallery: {id: 'programming', isMiner: false},
@@ -49,6 +50,19 @@ describe('document headers', () => {
     const last = res.pop()!;
     expect(res[0].id).toBeGreaterThanOrEqual(last.id + 250);
     expect(res[0].id).toBeLessThanOrEqual(last.id + 300);
+  });
+  it('slow crawling limit', async () => {
+    let now = new Date().getTime();
+    const res = await slowCrawler.documentHeaders({
+      gallery: {id: 'programming', isMiner: false},
+      limit: 250,
+    });
+    expect(res.length).toBe(250);
+    const last = res.pop()!;
+    expect(res[0].id).toBeGreaterThanOrEqual(last.id + 250);
+    expect(res[0].id).toBeLessThanOrEqual(last.id + 300);
+    let now2 = new Date().getTime();
+    expect(now2 - now).toBeGreaterThanOrEqual(1000);
   });
   it('limit with page', async () => {
     const res2 = await crawler.documentHeaders({

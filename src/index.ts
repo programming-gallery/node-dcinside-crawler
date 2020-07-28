@@ -1,4 +1,4 @@
-import request from './request';
+import * as Request from './request';
 import Xray from 'x-ray';
 
 const koreaDateParse = (val: string): Date => {
@@ -116,9 +116,13 @@ export type GalleryIndex = Pick<Gallery, 'id' | 'isMiner'> & Partial<Gallery>;
 
 class RawCrawler {
   e_s_n_o = '';
+  request: any;
+  constructor(rps?: number, retries?: number) {
+    this.request = Request.create(rps, retries);
+  }
   async weeklyActiveMajorGalleryIndexes(): Promise<GalleryIndex[]> {
     const callbackParam = `jQuery32109002533932178827_${new Date().getTime()}`;
-    const res = await request.get(
+    const res = await this.request.get(
       `https://json2.dcinside.com/json0/gallmain/gallery_hot.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`,
       {headers: {Referer: 'https://gall.dcinside.com/'}}
     );
@@ -135,7 +139,7 @@ class RawCrawler {
   }
   async weeklyActiveMinorGalleryIndexes(): Promise<GalleryIndex[]> {
     const callbackParam = 'json_mgall_hot';
-    const res = await request.get(
+    const res = await this.request.get(
       `https://json2.dcinside.com/json0/mgallmain/mgallery_hot.php?jsoncallback=${callbackParam}`,
       {headers: {Referer: 'https://gall.dcinside.com/m'}}
     );
@@ -152,7 +156,7 @@ class RawCrawler {
   }
   async realtimeActiveMinorGalleryIndexes(): Promise<GalleryIndex[]> {
     const callbackParam = `jQuery32107665147071438096_${new Date().getTime()}`;
-    const res = await request.get(
+    const res = await this.request.get(
       `https://json2.dcinside.com/json1/mgallmain/mgallery_ranking.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`,
       {headers: {Referer: 'https://gall.dcinside.com/m'}}
     );
@@ -169,7 +173,7 @@ class RawCrawler {
   }
   async realtimeActiveMajorGalleryIndexes(): Promise<GalleryIndex[]> {
     const callbackParam = `jQuery3210837750950307798_${new Date().getTime()}`;
-    const res = await request.get(
+    const res = await this.request.get(
       `https://json2.dcinside.com/json1/ranking_gallery.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`,
       {headers: {Referer: 'https://gall.dcinside.com/'}}
     );
@@ -188,7 +192,7 @@ class RawCrawler {
     gallery: GalleryIndex,
     page: number
   ): Promise<DocumentHeader[]> {
-    const res = await request.get(
+    const res = await this.request.get(
       `https://gall.dcinside.com${
         gallery.isMiner ? '/mgallery/' : '/'
       }board/lists?id=${gallery.id}&list_num=100&page=${page}`
@@ -243,7 +247,7 @@ class RawCrawler {
         Referer: `https://gall.dcinside.com/board/view/?id=${doc.gallery.id}&no=${doc.id}&_rk=tDL&page=1`,
       },
     };
-    const res = await request(option);
+    const res = await this.request(option);
     let lastComment: Comment | null = null;
     const comments = res.data.comments
       .filter((comm: any) => comm.no)
@@ -297,7 +301,10 @@ export interface CrawlerCommentsOptions {
   lastCommentId?: number;
 }
 export default class Crawler {
-  rawCrawler: RawCrawler = new RawCrawler();
+  rawCrawler: RawCrawler;
+  constructor(rps?: number, retries?: number) {
+    this.rawCrawler = new RawCrawler(rps, retries);
+  }
   async documentHeaders(
     _options: CrawlerDocumentHeaderOptions
   ): Promise<DocumentHeader[]> {

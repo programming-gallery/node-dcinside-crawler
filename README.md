@@ -11,7 +11,9 @@ bower install dcinside-crawler --save
 
 ```typescript
 import Crawler from 'dcinside-crawler';
-const crawler = new Crawler();
+const rps = 10; //default request per seconeds
+const retries = 5; // default max retries number
+const crawler = new Crawler(rps, retries);
 const gallery = {
   id: 'programming',
   isMinser: false,

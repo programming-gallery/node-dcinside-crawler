@@ -82,7 +82,7 @@ class RawCrawler {
     }
     documentHeaders(gallery, page) {
         return __awaiter(this, void 0, void 0, function* () {
-            const res = yield request_1.default.get(`https://gall.dcinside.com${gallery.isMiner ? '/mgallery' : '/'}board/lists?id=${gallery.id}&list_num=100&page=${page}`);
+            const res = yield request_1.default.get(`https://gall.dcinside.com${gallery.isMiner ? '/mgallery/' : '/'}board/lists?id=${gallery.id}&list_num=100&page=${page}`);
             if (!this.e_s_n_o)
                 this.e_s_n_o = yield xray(res.data, 'input#e_s_n_o@value');
             const rows = yield xray(res.data, 'table.gall_list tbody tr.us-post', [
