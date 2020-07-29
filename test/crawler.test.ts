@@ -109,6 +109,39 @@ describe('document headers', () => {
     expect(res1.length).toBeLessThanOrEqual(120);
     expect(res1[res1.length-1].createdAt.getTime()).toBeGreaterThanOrEqual(res[0].createdAt.getTime());
   })
+  it('crawl filter combination', async () => {
+    const res = await crawler.documentHeaders({
+      gallery: {id: 'programming', isMiner: false},
+      page: 2,
+      limit: 100,
+    });
+    const res1 = await crawler.documentHeaders({
+      gallery: {id: 'programming', isMiner: false},
+      page: 1,
+      lastDocumentCreatedAt: res[99].createdAt,
+      lastDocumentId: res[0].id,
+      limit: 150,
+    });
+    const res2 = await crawler.documentHeaders({
+      gallery: {id: 'programming', isMiner: false},
+      page: 1,
+      lastDocumentCreatedAt: res[0].createdAt,
+      lastDocumentId: res[99].id,
+      limit: 150,
+    });
+    const res3 = await crawler.documentHeaders({
+      gallery: {id: 'programming', isMiner: false},
+      page: 1,
+      lastDocumentCreatedAt: res[99].createdAt,
+      lastDocumentId: res[99].id,
+      limit: 50,
+    });
+    expect(res1.length).toBeGreaterThanOrEqual(100);
+    expect(res1.length).toBeLessThanOrEqual(110);
+    expect(res2.length).toBeGreaterThanOrEqual(100);
+    expect(res2.length).toBeLessThanOrEqual(110);
+    expect(res3.length).toBe(50);
+  })
   it('comments', async () => {
     const res = await crawler.comments({
       document: {
