@@ -24,6 +24,7 @@ documentHeaders.length === 101 // true
 
 /* Fetch all new published documents since the last document */
 let newPublishedDocumentHeaders = await crawler.documentHeaders({ gallery, lastDocumentId: documentHeaders[0].id })
+// let newPublishedDocumentHeaders = await crawler.documentHeaders({ gallery, lastDocumentCreatedAt: documentHeaders[0].createdAt })
 
 documentHeaders[0];
 /* 

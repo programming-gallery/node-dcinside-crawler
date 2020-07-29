@@ -81,6 +81,8 @@ export declare type DocumentIndex = Pick<DocumentHeader, 'id' | 'gallery'> & Par
 export declare type GalleryIndex = Pick<Gallery, 'id' | 'isMiner'> & Partial<Gallery>;
 declare class RawCrawler {
     e_s_n_o: string;
+    request: any;
+    constructor(rps?: number, retries?: number);
     weeklyActiveMajorGalleryIndexes(): Promise<GalleryIndex[]>;
     weeklyActiveMinorGalleryIndexes(): Promise<GalleryIndex[]>;
     realtimeActiveMinorGalleryIndexes(): Promise<GalleryIndex[]>;
@@ -103,6 +105,7 @@ export interface CrawlerCommentsOptions {
 }
 export default class Crawler {
     rawCrawler: RawCrawler;
+    constructor(rps?: number, retries?: number);
     documentHeaders(_options: CrawlerDocumentHeaderOptions): Promise<DocumentHeader[]>;
     comments(options: CrawlerCommentsOptions): Promise<Comment[]>;
     activeGalleryIndexes(): Promise<GalleryIndex[]>;

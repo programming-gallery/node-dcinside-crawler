@@ -293,6 +293,7 @@ class RawCrawler {
 export interface CrawlerDocumentHeaderOptions {
   gallery: GalleryIndex;
   lastDocumentId?: number;
+  lastDocumentCreatedAt?: Date;
   page?: number;
   limit?: number;
 }
@@ -305,6 +306,37 @@ export default class Crawler {
   constructor(rps?: number, retries?: number) {
     this.rawCrawler = new RawCrawler(rps, retries);
   }
+  async documentHeaders(
+    options: CrawlerDocumentHeaderOptions
+  ): Promise<DocumentHeader[]> {
+    let { 
+      gallery,
+      page = 1,
+      limit = 
+        options.limit === undefined && options.lastDocumentId !== undefined || options.lastDocumentCreatedAt !== undefined? 
+        Infinity : 100,
+      lastDocumentCreatedAt = 0,
+      lastDocumentId = 0,
+    } = options;
+    let res: DocumentHeader[] = await this.rawCrawler.documentHeaders(gallery, page++);
+    let lastDocument = res[res.length-1];
+    while(
+      lastDocument.createdAt > lastDocumentCreatedAt && 
+      lastDocument.id > lastDocumentId && 
+      res.length < limit) {
+      let rows = await this.rawCrawler.documentHeaders(gallery, page++);
+      if(rows[0].id >= lastDocument.id)
+        rows.splice(0, rows.findIndex(r => r.id === lastDocument.id));
+      res.push(...rows);
+      lastDocument = res[res.length-1];
+    }
+    return res
+      .filter(row => 
+        row.createdAt > lastDocumentCreatedAt && 
+        row.id > lastDocumentId)
+      .slice(0, limit);
+  }
+  /*
   async documentHeaders(
     _options: CrawlerDocumentHeaderOptions
   ): Promise<DocumentHeader[]> {
@@ -329,7 +361,7 @@ export default class Crawler {
       .flat()
       .filter(header => header.id > (lastDocumentId || 0))
       .slice(0, limit);
-  }
+  }*/
   async comments(options: CrawlerCommentsOptions): Promise<Comment[]> {
     const {document, lastCommentId = 0} = options;
     let {comments, pageCount} = await this.rawCrawler.comments(document, 1);

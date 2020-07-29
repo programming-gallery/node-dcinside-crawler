@@ -1,4 +1,23 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -12,7 +31,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const request_1 = __importDefault(require("./request"));
+const Request = __importStar(require("./request"));
 const x_ray_1 = __importDefault(require("x-ray"));
 const koreaDateParse = (val) => {
     let date = new Date(val);
@@ -25,13 +44,14 @@ const xray = x_ray_1.default({
     },
 });
 class RawCrawler {
-    constructor() {
+    constructor(rps, retries) {
         this.e_s_n_o = '';
+        this.request = Request.create(rps, retries);
     }
     weeklyActiveMajorGalleryIndexes() {
         return __awaiter(this, void 0, void 0, function* () {
             const callbackParam = `jQuery32109002533932178827_${new Date().getTime()}`;
-            const res = yield request_1.default.get(`https://json2.dcinside.com/json0/gallmain/gallery_hot.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`, { headers: { Referer: 'https://gall.dcinside.com/' } });
+            const res = yield this.request.get(`https://json2.dcinside.com/json0/gallmain/gallery_hot.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`, { headers: { Referer: 'https://gall.dcinside.com/' } });
             if (!res.data || !res.data.startsWith(callbackParam))
                 throw Error(`fail to parse ${res.data}`);
             return JSON.parse(res.data.trim().slice(callbackParam.length + 1, -1)).map((item) => ({
@@ -44,7 +64,7 @@ class RawCrawler {
     weeklyActiveMinorGalleryIndexes() {
         return __awaiter(this, void 0, void 0, function* () {
             const callbackParam = 'json_mgall_hot';
-            const res = yield request_1.default.get(`https://json2.dcinside.com/json0/mgallmain/mgallery_hot.php?jsoncallback=${callbackParam}`, { headers: { Referer: 'https://gall.dcinside.com/m' } });
+            const res = yield this.request.get(`https://json2.dcinside.com/json0/mgallmain/mgallery_hot.php?jsoncallback=${callbackParam}`, { headers: { Referer: 'https://gall.dcinside.com/m' } });
             if (!res.data || !res.data.startsWith(callbackParam))
                 throw Error(`fail to parse ${res.data}`);
             return JSON.parse(res.data.trim().slice(callbackParam.length + 1, -1)).map((item) => ({
@@ -57,7 +77,7 @@ class RawCrawler {
     realtimeActiveMinorGalleryIndexes() {
         return __awaiter(this, void 0, void 0, function* () {
             const callbackParam = `jQuery32107665147071438096_${new Date().getTime()}`;
-            const res = yield request_1.default.get(`https://json2.dcinside.com/json1/mgallmain/mgallery_ranking.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`, { headers: { Referer: 'https://gall.dcinside.com/m' } });
+            const res = yield this.request.get(`https://json2.dcinside.com/json1/mgallmain/mgallery_ranking.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`, { headers: { Referer: 'https://gall.dcinside.com/m' } });
             if (!res.data || !res.data.startsWith(callbackParam))
                 throw Error(`fail to parse ${res.data}`);
             return JSON.parse(res.data.trim().slice(callbackParam.length + 1, -1)).map((item) => ({
@@ -70,7 +90,7 @@ class RawCrawler {
     realtimeActiveMajorGalleryIndexes() {
         return __awaiter(this, void 0, void 0, function* () {
             const callbackParam = `jQuery3210837750950307798_${new Date().getTime()}`;
-            const res = yield request_1.default.get(`https://json2.dcinside.com/json1/ranking_gallery.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`, { headers: { Referer: 'https://gall.dcinside.com/' } });
+            const res = yield this.request.get(`https://json2.dcinside.com/json1/ranking_gallery.php?jsoncallback=${callbackParam}&_=${new Date().getTime()}`, { headers: { Referer: 'https://gall.dcinside.com/' } });
             if (!res.data || !res.data.startsWith(callbackParam))
                 throw Error(`fail to parse ${res.data}`);
             return JSON.parse(res.data.trim().slice(callbackParam.length + 1, -1)).map((item) => ({
@@ -82,7 +102,7 @@ class RawCrawler {
     }
     documentHeaders(gallery, page) {
         return __awaiter(this, void 0, void 0, function* () {
-            const res = yield request_1.default.get(`https://gall.dcinside.com${gallery.isMiner ? '/mgallery/' : '/'}board/lists?id=${gallery.id}&list_num=100&page=${page}`);
+            const res = yield this.request.get(`https://gall.dcinside.com${gallery.isMiner ? '/mgallery/' : '/'}board/lists?id=${gallery.id}&list_num=100&page=${page}`);
             if (!this.e_s_n_o)
                 this.e_s_n_o = yield xray(res.data, 'input#e_s_n_o@value');
             const rows = yield xray(res.data, 'table.gall_list tbody tr.us-post', [
@@ -132,7 +152,7 @@ class RawCrawler {
                     Referer: `https://gall.dcinside.com/board/view/?id=${doc.gallery.id}&no=${doc.id}&_rk=tDL&page=1`,
                 },
             };
-            const res = yield request_1.default(option);
+            const res = yield this.request(option);
             let lastComment = null;
             const comments = res.data.comments
                 .filter((comm) => comm.no)
@@ -177,8 +197,8 @@ class RawCrawler {
     }
 }
 class Crawler {
-    constructor() {
-        this.rawCrawler = new RawCrawler();
+    constructor(rps, retries) {
+        this.rawCrawler = new RawCrawler(rps, retries);
     }
     documentHeaders(_options) {
         return __awaiter(this, void 0, void 0, function* () {

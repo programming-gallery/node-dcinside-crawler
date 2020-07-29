@@ -1,2 +1,1 @@
-declare const request: any;
-export default request;
+export declare function create(rps?: number, retries?: number): any;
