@@ -1,6 +1,6 @@
 {
   "name": "dcinside-crawler",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "typescript dcinside crawler",
   "main": "build/src/index.js",
   "type": "build/src/index.d.ts",
