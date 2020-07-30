@@ -30,19 +30,9 @@ export class Document {
 */
 
 export interface User {
+  id?: string;
   nickname: string;
-}
-/**
- * 고닉
- */
-export interface StaticUser extends User {
-  id: string;
-}
-/**
- * 유동
- */
-export interface DynamicUser extends User {
-  ip: string;
+  ip?: string;
 }
 
 export interface Comment {
@@ -98,11 +88,11 @@ export interface Gallery {
   /**
    * A manager user of this gallery
    */
-  manager: StaticUser;
+  manager: User;
   /**
    * SubManager users of this gallery
    */
-  subManagers: StaticUser[];
+  subManagers: User[];
 }
 /**
  * Minimum Document information to fetch related data from dcinside
@@ -220,8 +210,8 @@ class RawCrawler {
       row.gallery = gallery;
       row.createdAt = koreaDateParse(row.createdAt);
       row.author = row.authorId
-        ? ({nickname: row.authorName, id: row.authorId} as StaticUser)
-        : ({nickname: row.authorName, ip: row.authorIp} as DynamicUser);
+        ? ({nickname: row.authorName, id: row.authorId} as User)
+        : ({nickname: row.authorName, ip: row.authorIp} as User);
     }
     return rows as DocumentHeader[];
   }
@@ -254,8 +244,8 @@ class RawCrawler {
       .map((comm: any) => {
         let comment: Comment = {
           author: comm.user_id
-            ? ({id: comm.user_id, nickname: comm.name} as StaticUser)
-            : ({ip: comm.ip, nickname: comm.name} as DynamicUser),
+            ? ({id: comm.user_id, nickname: comm.name} as User)
+            : ({ip: comm.ip, nickname: comm.name} as User),
           id: parseInt(comm.no),
           parent: comm.depth !== 0 ? lastComment : undefined,
           createdAt: koreaDateParse(comm.reg_date),

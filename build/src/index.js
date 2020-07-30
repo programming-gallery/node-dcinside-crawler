@@ -200,21 +200,53 @@ class Crawler {
     constructor(rps, retries) {
         this.rawCrawler = new RawCrawler(rps, retries);
     }
-    documentHeaders(_options) {
+    documentHeaders(options) {
         return __awaiter(this, void 0, void 0, function* () {
-            const options = Object.assign({ page: 1, limit: _options.lastDocumentId !== undefined ? Infinity : 100 }, _options);
-            const { gallery, lastDocumentId, page, limit } = options;
-            const headers = yield this.rawCrawler.documentHeaders(gallery, page);
-            const pageCount = lastDocumentId !== undefined
-                ? Math.ceil((headers[0].id - lastDocumentId) / 100)
-                : Math.ceil(limit / 100);
-            return [headers]
-                .concat(yield Promise.all([...Array(pageCount - 1).keys()].map(i => this.rawCrawler.documentHeaders(gallery, page + i + 1))))
-                .flat()
-                .filter(header => header.id > (lastDocumentId || 0))
+            let { gallery, page = 1, limit = options.limit === undefined && options.lastDocumentId !== undefined || options.lastDocumentCreatedAt !== undefined ?
+                Infinity : 100, lastDocumentCreatedAt = 0, lastDocumentId = 0, } = options;
+            let res = yield this.rawCrawler.documentHeaders(gallery, page++);
+            let lastDocument = res[res.length - 1];
+            while (lastDocument.createdAt > lastDocumentCreatedAt &&
+                lastDocument.id > lastDocumentId &&
+                res.length < limit) {
+                let rows = yield this.rawCrawler.documentHeaders(gallery, page++);
+                if (rows[0].id >= lastDocument.id)
+                    rows.splice(0, rows.findIndex(r => r.id === lastDocument.id));
+                res.push(...rows);
+                lastDocument = res[res.length - 1];
+            }
+            return res
+                .filter(row => row.createdAt > lastDocumentCreatedAt &&
+                row.id > lastDocumentId)
                 .slice(0, limit);
         });
     }
+    /*
+    async documentHeaders(
+      _options: CrawlerDocumentHeaderOptions
+    ): Promise<DocumentHeader[]> {
+      const options = Object.assign(
+        {page: 1, limit: _options.lastDocumentId !== undefined ? Infinity : 100},
+        _options
+      );
+      const {gallery, lastDocumentId, page, limit} = options;
+      const headers = await this.rawCrawler.documentHeaders(gallery, page);
+      const pageCount =
+        lastDocumentId !== undefined
+          ? Math.ceil((headers[0].id - lastDocumentId) / 100)
+          : Math.ceil(limit / 100);
+      return [headers]
+        .concat(
+          await Promise.all(
+            [...Array(pageCount - 1).keys()].map(i =>
+              this.rawCrawler.documentHeaders(gallery, page + i + 1)
+            )
+          )
+        )
+        .flat()
+        .filter(header => header.id > (lastDocumentId || 0))
+        .slice(0, limit);
+    }*/
     comments(options) {
         return __awaiter(this, void 0, void 0, function* () {
             const { document, lastCommentId = 0 } = options;

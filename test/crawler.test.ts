@@ -11,6 +11,7 @@ describe('document headers', () => {
     expect(typeof(res[0].id)).toBe('number');
     expect(typeof(res[0].commentCount)).toBe('number');
     expect(typeof(res[0].hasImage)).toBe('boolean');
+    expect(res[0].author.id || res[0].author.ip).not.toEqual(null);
   });
   it('timezone check', async() => {
     const res = await crawler.documentHeaders({

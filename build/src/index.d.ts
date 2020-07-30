@@ -96,6 +96,7 @@ declare class RawCrawler {
 export interface CrawlerDocumentHeaderOptions {
     gallery: GalleryIndex;
     lastDocumentId?: number;
+    lastDocumentCreatedAt?: Date;
     page?: number;
     limit?: number;
 }
@@ -106,7 +107,7 @@ export interface CrawlerCommentsOptions {
 export default class Crawler {
     rawCrawler: RawCrawler;
     constructor(rps?: number, retries?: number);
-    documentHeaders(_options: CrawlerDocumentHeaderOptions): Promise<DocumentHeader[]>;
+    documentHeaders(options: CrawlerDocumentHeaderOptions): Promise<DocumentHeader[]>;
     comments(options: CrawlerCommentsOptions): Promise<Comment[]>;
     activeGalleryIndexes(): Promise<GalleryIndex[]>;
 }
