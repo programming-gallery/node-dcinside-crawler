@@ -9,25 +9,11 @@ const koreaDateParse = (val: string): Date => {
 const xray = Xray({
   filters: {
     number: val => parseInt(val.replace(/[\D^.]/g, '') || 0),
+    reduceWhitespace: val => val.split('\n').map(s => s.trim()).filter(t => t).join('\n'),
     lastClass: val => val.split(' ').pop(),
   },
 });
 
-/*
-export class Document {
-  id: string;
-  contents: string | undefined = undefined;
-  imageUrls: string[] = [];
-  html: string;
-  title: string;
-  author: User;
-  comments: Comment[] = [];
-  viewCount: number;
-  likeCount: number;
-  dislikeCount: number;
-  createdAt: Date;
-}
-*/
 
 export interface User {
   id?: string;
@@ -71,6 +57,12 @@ export interface DocumentHeader {
   hasVideo: boolean;
   isRecommend: boolean;
   createdAt: Date;
+}
+export interface Document extends DocumentHeader {
+  contents: string;
+  isMobile: boolean;
+  staticLikeCount: number;
+  comments: Comment[];
 }
 export interface Gallery {
   /**
@@ -215,7 +207,66 @@ class RawCrawler {
     }
     return rows as DocumentHeader[];
   }
+  async documnet(
+    index: DocumentIndex,
+  ): Promise<Document> {
+    const res = await this.request.get(
+      `https://gall.dcinside.com/${index.gallery.isMiner? 'mgallery/': ''}board/view/?id=${index.gallery.id}&no=${index.id}`
+    );
+    const doc = await xray(res.data, 'div.view_content_wrap', {
+      contents: '.writing_view_box | reduceWhitespace',
+      isMobile: 'span.title_device',
+      head: 'span.title_headtext',
+      author: {
+        nickname: 'div.gall_writer@data-nick',
+        ip: 'div.gall_writer@data-ip',
+        id: 'div.gall_writer@data-uid',
+      },
+      createdAt: '.gall_date@title',
+      viewCount: '.gall_count | number',
+      commentCount: '.gall_comment | number',
+      title: 'span.title_subject',
+      images: ['img@src'],
+      likeCount: 'p.up_num | number',
+      dislikeCount: 'p.down_num | number',
+      staticLikeCount: 'p.sub_num | number',
+    }); 
+    doc.images = doc.images.filter(src => src.startswith('https://dcimg'));
+      /*{
+        id: '.gall_num | number',
+        title: '.gall_tit a',
+        class: '.gall_tit a em@class | lastClass',
+        commentCount: '.gall_tit a.reply_numbox .reply_num | number',
+        authorName: '.gall_writer@data-nick',
+        authorIp: '.gall_writer@data-ip',
+        authorId: '.gall_writer@data-uid',
+        createdAt: '.gall_date@title',
+        viewCount: '.gall_count | number',
+        likeCount: '.gall_recommend | number',
+      },
+    );*/
+  }
   async comments(
+    doc: DocumentIndex,
+  ): Promise<Comment[]> {
+    let {comments, pageCount} = await this._comments(document, 1);
+    comments = [comments]
+      .concat(
+        await Promise.all(
+          [...Array(pageCount - 1).keys()].map(i =>
+            this.rawCrawler.comments(document, i + 1).then(res => res.comments)
+          )
+        )
+      )
+      .flat();
+    let lastComment: Comment | null = null;
+    for (const comm of comments) {
+      if (comm.parent === undefined) lastComment = comm;
+      else if (comm.parent === null) comm.parent = lastComment;
+    }
+    return comments;
+  }
+  async _comments(
     doc: DocumentIndex,
     page = 1
   ): Promise<{comments: Comment[]; pageCount: number}> {
@@ -352,7 +403,7 @@ export default class Crawler {
       .filter(header => header.id > (lastDocumentId || 0))
       .slice(0, limit);
   }*/
-  async comments(options: CrawlerCommentsOptions): Promise<Comment[]> {
+  /*async comments(options: CrawlerCommentsOptions): Promise<Comment[]> {
     const {document, lastCommentId = 0} = options;
     let {comments, pageCount} = await this.rawCrawler.comments(document, 1);
     comments = [comments]
@@ -370,7 +421,7 @@ export default class Crawler {
       else if (comm.parent === null) comm.parent = lastComment;
     }
     return comments.filter(comm => comm.id > lastCommentId);
-  }
+  }*/
   async activeGalleryIndexes(): Promise<GalleryIndex[]> {
     const reses = await Promise.all([
       this.rawCrawler.realtimeActiveMajorGalleryIndexes(),
