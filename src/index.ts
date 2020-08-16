@@ -1,5 +1,7 @@
 import * as Request from './request';
 import Xray from 'x-ray';
+import * as entities from 'entities';
+import { PromiseIterator } from './util';
 
 const koreaDateParse = (val: string): Date => {
  let date = new Date(val);
@@ -9,7 +11,10 @@ const koreaDateParse = (val: string): Date => {
 const xray = Xray({
   filters: {
     number: val => parseInt(val.replace(/[\D^.]/g, '') || 0),
-    reduceWhitespace: val => val.split('\n').map(s => s.trim()).filter(t => t).join('\n'),
+    reduceWhitespace: val => val.split('\n').map((s: string) => s.trim()).filter((t: string) => t).join('\n'),
+    //reduceWhitespace: val => val,//val.split('\n').map((s: string) => s.trim()).filter((t: string) => t).join('\n'),
+    //htmlToText: val => val.replaceAll("<br\/?>", "\n").replaceAll("<\/?div>", "\n").replaceAll("<\/?p>", "\n").replaceAll("<[^>]*>", ""),
+    htmlToText: val => entities.decodeHTML(val.replace(/<br\/?>/g, "\n").replace(/<\/?div[^>]*>/g, "\n").replace(/<\/?p[^>]*>/g, "\n").replace(/<[^>]*>/g, "")),
     lastClass: val => val.split(' ').pop(),
   },
 });
@@ -50,6 +55,7 @@ export interface DocumentHeader {
   gallery: GalleryIndex;
   id: number;
   title: string;
+  subject: string | undefined;
   author: User;
   commentCount: number;
   likeCount: number;
@@ -62,6 +68,7 @@ export interface Document extends DocumentHeader {
   contents: string;
   isMobile: boolean;
   staticLikeCount: number;
+  subject: string | undefined;
   comments: Comment[];
 }
 export interface Gallery {
@@ -97,10 +104,12 @@ export type DocumentIndex = Pick<DocumentHeader, 'id' | 'gallery'> &
 export type GalleryIndex = Pick<Gallery, 'id' | 'isMiner'> & Partial<Gallery>;
 
 class RawCrawler {
+  host = '';
   e_s_n_o = '';
   request: any;
-  constructor(rps?: number, retries?: number) {
+  constructor(rps?: number, retries?: number, host: string = 'https://gall.dcinside.com') {
     this.request = Request.create(rps, retries);
+    this.host = host;
   }
   async weeklyActiveMajorGalleryIndexes(): Promise<GalleryIndex[]> {
     const callbackParam = `jQuery32109002533932178827_${new Date().getTime()}`;
@@ -175,48 +184,59 @@ class RawCrawler {
     page: number
   ): Promise<DocumentHeader[]> {
     const res = await this.request.get(
-      `https://gall.dcinside.com${
+      `${this.host}${
         gallery.isMiner ? '/mgallery/' : '/'
       }board/lists?id=${gallery.id}&list_num=100&page=${page}`
     );
     if (!this.e_s_n_o)
       this.e_s_n_o = await xray(res.data, 'input#e_s_n_o@value');
-    const rows = await xray(res.data, 'table.gall_list tbody tr.us-post', [
+    let rows = await xray(res.data, 'table.gall_list tbody tr.us-post', [
       {
         id: '.gall_num | number',
         title: '.gall_tit a',
+        insertedSubject: '.gall_subject b',
+        subject: '.gall_subject',
         class: '.gall_tit a em@class | lastClass',
         commentCount: '.gall_tit a.reply_numbox .reply_num | number',
-        authorName: '.gall_writer@data-nick',
-        authorIp: '.gall_writer@data-ip',
-        authorId: '.gall_writer@data-uid',
+        author: {
+          nickname:'.gall_writer@data-nick',
+          ip: '.gall_writer@data-ip',
+          id: '.gall_writer@data-uid',
+        },
         createdAt: '.gall_date@title',
         viewCount: '.gall_count | number',
         likeCount: '.gall_recommend | number',
       },
     ]);
+    rows = rows.filter((r:any) => r.id && r.insertedSubject === undefined);
     for (const row of rows) {
       row.hasImage = row.class.endsWith('pic') || row.class.endsWith('img');
       row.hasVideo = row.class.endsWith('movie');
       row.isRecommend = row.class.startsWith('icon_recom');
+      delete row.class;
       row.gallery = gallery;
       row.createdAt = koreaDateParse(row.createdAt);
-      row.author = row.authorId
-        ? ({nickname: row.authorName, id: row.authorId} as User)
-        : ({nickname: row.authorName, ip: row.authorIp} as User);
     }
     return rows as DocumentHeader[];
   }
-  async documnet(
+  async document(
     index: DocumentIndex,
   ): Promise<Document> {
-    const res = await this.request.get(
-      `https://gall.dcinside.com/${index.gallery.isMiner? 'mgallery/': ''}board/view/?id=${index.gallery.id}&no=${index.id}`
+    let res = await this.request.get(
+      `${this.host}/${index.gallery.isMiner? 'mgallery/': ''}board/view/?id=${index.gallery.id}&no=${index.id}`
     );
+    for(let i=0; !res.data; ++i){
+      res = await this.request.get(
+        `${this.host}/${index.gallery.isMiner? 'mgallery/': ''}board/view/?id=${index.gallery.id}&no=${index.id}`
+      );
+      console.log(index, i);
+      if(i === 5)
+        throw Error("ip banned");
+    }
     const doc = await xray(res.data, 'div.view_content_wrap', {
-      contents: '.writing_view_box | reduceWhitespace',
+      contents: '.writing_view_box@html | htmlToText | reduceWhitespace',
       isMobile: 'span.title_device',
-      head: 'span.title_headtext',
+      subject: 'span.title_headtext',
       author: {
         nickname: 'div.gall_writer@data-nick',
         ip: 'div.gall_writer@data-ip',
@@ -226,35 +246,35 @@ class RawCrawler {
       viewCount: '.gall_count | number',
       commentCount: '.gall_comment | number',
       title: 'span.title_subject',
-      images: ['img@src'],
+      //images: ['img@src'],
       likeCount: 'p.up_num | number',
       dislikeCount: 'p.down_num | number',
-      staticLikeCount: 'p.sub_num | number',
+      staticLikeCount: 'p.sup_num | number',
     }); 
-    doc.images = doc.images.filter(src => src.startswith('https://dcimg'));
-      /*{
-        id: '.gall_num | number',
-        title: '.gall_tit a',
-        class: '.gall_tit a em@class | lastClass',
-        commentCount: '.gall_tit a.reply_numbox .reply_num | number',
-        authorName: '.gall_writer@data-nick',
-        authorIp: '.gall_writer@data-ip',
-        authorId: '.gall_writer@data-uid',
-        createdAt: '.gall_date@title',
-        viewCount: '.gall_count | number',
-        likeCount: '.gall_recommend | number',
-      },
-    );*/
+    //doc.images = doc.images.filter((src: string) => src.startsWith('https://dcimg'));
+    doc.createdAt = koreaDateParse(doc.createdAt);
+    doc.id = index.id;
+    doc.gallery = index.gallery;
+    doc.isMobile = doc.isMobile? true: false;
+    if(doc.commentCount > 0)
+      doc.comments = await this.comments(index);
+    else
+      doc.comments = [];
+    if(doc.subject)
+      doc.subject = doc.subject.slice(1, -1);
+    return doc;
   }
   async comments(
-    doc: DocumentIndex,
+    document: DocumentIndex,
   ): Promise<Comment[]> {
     let {comments, pageCount} = await this._comments(document, 1);
+    if(pageCount === 1)
+      return comments;
     comments = [comments]
       .concat(
         await Promise.all(
           [...Array(pageCount - 1).keys()].map(i =>
-            this.rawCrawler.comments(document, i + 1).then(res => res.comments)
+            this._comments(document, i + 1).then(res => res.comments)
           )
         )
       )
@@ -272,7 +292,7 @@ class RawCrawler {
   ): Promise<{comments: Comment[]; pageCount: number}> {
     const option = {
       method: 'post',
-      url: 'https://gall.dcinside.com/board/comment',
+      url: `${this.host}/board/comment`,
       data: {
         id: doc.gallery.id,
         no: doc.id,
@@ -290,7 +310,7 @@ class RawCrawler {
     };
     const res = await this.request(option);
     let lastComment: Comment | null = null;
-    const comments = res.data.comments
+    const comments = (res.data.comments || [])
       .filter((comm: any) => comm.no)
       .map((comm: any) => {
         let comment: Comment = {
@@ -324,10 +344,14 @@ class RawCrawler {
         return comment;
       })
       .reverse();
-    const pageCount = parseInt(
-      Array.from(res.data.pagination.matchAll(/\d+/g), (r: any) => r[0]).pop()
-    );
-    return {comments, pageCount};
+    if(res.data.pagination){
+      const pageCount = parseInt(
+        Array.from(res.data.pagination.matchAll(/\d+/g), (r: any) => r[0]).pop()
+      );
+      return {comments, pageCount};
+    } else {
+      return {comments: [], pageCount: 1};
+    }
   }
 }
 
@@ -342,10 +366,10 @@ export interface CrawlerCommentsOptions {
   document: DocumentIndex;
   lastCommentId?: number;
 }
-export default class Crawler {
+export class Crawler {
   rawCrawler: RawCrawler;
-  constructor(rps?: number, retries?: number) {
-    this.rawCrawler = new RawCrawler(rps, retries);
+  constructor(rps?: number, retries?: number, host?: string) {
+    this.rawCrawler = new RawCrawler(rps, retries, host);
   }
   async documentHeaders(
     options: CrawlerDocumentHeaderOptions
@@ -356,7 +380,7 @@ export default class Crawler {
       limit = 
         options.limit === undefined && options.lastDocumentId !== undefined || options.lastDocumentCreatedAt !== undefined? 
         Infinity : 100,
-      lastDocumentCreatedAt = 0,
+      lastDocumentCreatedAt = new Date(0),
       lastDocumentId = 0,
     } = options;
     let res: DocumentHeader[] = await this.rawCrawler.documentHeaders(gallery, page++);
@@ -366,6 +390,12 @@ export default class Crawler {
       lastDocument.id > lastDocumentId && 
       res.length < limit) {
       let rows = await this.rawCrawler.documentHeaders(gallery, page++);
+      for(let i=0; rows.length === 0; ++i){
+        rows = await this.rawCrawler.documentHeaders(gallery, page-1);
+        console.log(gallery, page, i);
+        if(i === 5)
+          throw Error("ip ban");
+      }
       if(rows[0].id >= lastDocument.id)
         rows.splice(0, rows.findIndex(r => r.id === lastDocument.id));
       res.push(...rows);
@@ -376,6 +406,44 @@ export default class Crawler {
         row.createdAt > lastDocumentCreatedAt && 
         row.id > lastDocumentId)
       .slice(0, limit);
+  }
+  async document(index: DocumentIndex): Promise<Document> {
+    return this.rawCrawler.document(index);
+  }
+  async *documentHeaderWithCommentAsyncIterator(options: CrawlerDocumentHeaderOptions): AsyncGenerator<DocumentHeader & { comments: Comment[] }> {
+    let headers = await this.documentHeaders(options);
+    let i=0;
+    let documentPromises = headers.map(async (header) => { 
+      let headerWithComments: DocumentHeader & { comments: Comment[] } = Object.assign(header, {
+        comments: []
+      });
+      if(header.commentCount > 0){
+        headerWithComments.comments = await this.rawCrawler.comments(header);
+      }
+      return headerWithComments;
+    });
+    for await (const res of PromiseIterator(documentPromises)) {
+      if(!res.success)
+        throw res.error;
+      else
+        yield res.result;
+    }
+    return;
+  }
+  async *robustDocumentAsyncIterator(options: CrawlerDocumentHeaderOptions): AsyncGenerator<{success: boolean, result?: Document, error?: any}> {
+    let headers = await this.documentHeaders(options);
+    let documentPromises = headers.map(header => this.rawCrawler.document(header).then(res => {
+      res.hasImage = header.hasImage;
+      res.hasVideo = header.hasVideo;
+      return res;
+    }).catch(err => {
+      err.message = `Fail to fetch document: ${header.gallery.id}, ${header.gallery.isMiner? '(minor)': ''}, ${header.id}\n${err.message}`;
+      throw err;
+    }));
+    for await (const res of PromiseIterator(documentPromises)) {
+      yield res;
+    }
+    return;
   }
   /*
   async documentHeaders(
@@ -403,25 +471,9 @@ export default class Crawler {
       .filter(header => header.id > (lastDocumentId || 0))
       .slice(0, limit);
   }*/
-  /*async comments(options: CrawlerCommentsOptions): Promise<Comment[]> {
-    const {document, lastCommentId = 0} = options;
-    let {comments, pageCount} = await this.rawCrawler.comments(document, 1);
-    comments = [comments]
-      .concat(
-        await Promise.all(
-          [...Array(pageCount - 1).keys()].map(i =>
-            this.rawCrawler.comments(document, i + 1).then(res => res.comments)
-          )
-        )
-      )
-      .flat();
-    let lastComment: Comment | null = null;
-    for (const comm of comments) {
-      if (comm.parent === undefined) lastComment = comm;
-      else if (comm.parent === null) comm.parent = lastComment;
-    }
-    return comments.filter(comm => comm.id > lastCommentId);
-  }*/
+  async comments(index: DocumentIndex): Promise<Comment[]> {
+    return await this.rawCrawler.comments(index);
+  }
   async activeGalleryIndexes(): Promise<GalleryIndex[]> {
     const reses = await Promise.all([
       this.rawCrawler.realtimeActiveMajorGalleryIndexes(),
