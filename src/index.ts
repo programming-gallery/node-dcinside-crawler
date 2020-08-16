@@ -391,7 +391,6 @@ export class Crawler {
       lastDocument.id > lastDocumentId && 
       res.length < limit) {
       let rows = await this.rawCrawler.documentHeaders(gallery, page++);
-      console.log(gallery, page-1, lastDocument.id);
       if(rows.length === 0)
         break;
       if(rows[rows.length-1].id  === lastDocument.id)
