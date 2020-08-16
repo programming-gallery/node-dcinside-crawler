@@ -59,6 +59,7 @@ export interface DocumentHeader {
   author: User;
   commentCount: number;
   likeCount: number;
+  viewCount: number;
   hasImage: boolean;
   hasVideo: boolean;
   isRecommend: boolean;

@@ -1,17 +1,7 @@
 export interface User {
+    id?: string;
     nickname: string;
-}
-/**
- * 고닉
- */
-export interface StaticUser extends User {
-    id: string;
-}
-/**
- * 유동
- */
-export interface DynamicUser extends User {
-    ip: string;
+    ip?: string;
 }
 export interface Comment {
     id: number;
@@ -41,13 +31,22 @@ export interface DocumentHeader {
     gallery: GalleryIndex;
     id: number;
     title: string;
+    subject: string | undefined;
     author: User;
     commentCount: number;
     likeCount: number;
+    viewCount: number;
     hasImage: boolean;
     hasVideo: boolean;
     isRecommend: boolean;
     createdAt: Date;
+}
+export interface Document extends DocumentHeader {
+    contents: string;
+    isMobile: boolean;
+    staticLikeCount: number;
+    subject: string | undefined;
+    comments: Comment[];
 }
 export interface Gallery {
     /**
@@ -65,11 +64,11 @@ export interface Gallery {
     /**
      * A manager user of this gallery
      */
-    manager: StaticUser;
+    manager: User;
     /**
      * SubManager users of this gallery
      */
-    subManagers: StaticUser[];
+    subManagers: User[];
 }
 /**
  * Minimum Document information to fetch related data from dcinside
@@ -80,15 +79,18 @@ export declare type DocumentIndex = Pick<DocumentHeader, 'id' | 'gallery'> & Par
  */
 export declare type GalleryIndex = Pick<Gallery, 'id' | 'isMiner'> & Partial<Gallery>;
 declare class RawCrawler {
+    host: string;
     e_s_n_o: string;
     request: any;
-    constructor(rps?: number, retries?: number);
+    constructor(rps?: number, retries?: number, host?: string);
     weeklyActiveMajorGalleryIndexes(): Promise<GalleryIndex[]>;
     weeklyActiveMinorGalleryIndexes(): Promise<GalleryIndex[]>;
     realtimeActiveMinorGalleryIndexes(): Promise<GalleryIndex[]>;
     realtimeActiveMajorGalleryIndexes(): Promise<GalleryIndex[]>;
     documentHeaders(gallery: GalleryIndex, page: number): Promise<DocumentHeader[]>;
-    comments(doc: DocumentIndex, page?: number): Promise<{
+    document(index: DocumentIndex): Promise<Document>;
+    comments(document: DocumentIndex): Promise<Comment[]>;
+    _comments(doc: DocumentIndex, page?: number): Promise<{
         comments: Comment[];
         pageCount: number;
     }>;
@@ -104,11 +106,20 @@ export interface CrawlerCommentsOptions {
     document: DocumentIndex;
     lastCommentId?: number;
 }
-export default class Crawler {
+export declare class Crawler {
     rawCrawler: RawCrawler;
-    constructor(rps?: number, retries?: number);
+    constructor(rps?: number, retries?: number, host?: string);
     documentHeaders(options: CrawlerDocumentHeaderOptions): Promise<DocumentHeader[]>;
-    comments(options: CrawlerCommentsOptions): Promise<Comment[]>;
+    document(index: DocumentIndex): Promise<Document>;
+    documentHeaderWithCommentAsyncIterator(options: CrawlerDocumentHeaderOptions): AsyncGenerator<DocumentHeader & {
+        comments: Comment[];
+    }>;
+    robustDocumentAsyncIterator(options: CrawlerDocumentHeaderOptions): AsyncGenerator<{
+        success: boolean;
+        result?: Document;
+        error?: any;
+    }>;
+    comments(index: DocumentIndex): Promise<Comment[]>;
     activeGalleryIndexes(): Promise<GalleryIndex[]>;
 }
 export {};
