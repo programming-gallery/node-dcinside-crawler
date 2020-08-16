@@ -262,7 +262,7 @@ class RawCrawler {
                     comment = Object.assign(comment, {
                         dccon: {
                             imageUrl: comm.memo.match(/src=['"]([^"']*)['"]/)[1],
-                            name: comm.memo.match(/title=['"]([^"']*)['"]/)[1],
+                            name: (comm.memo.match(/title=['"]([^"']*)['"]/), [''])[1],
                             packageId: comm.memo.match(/no=([^&"/]*)/)[1],
                         },
                     });

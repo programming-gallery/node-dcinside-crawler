@@ -391,12 +391,11 @@ export class Crawler {
       lastDocument.id > lastDocumentId && 
       res.length < limit) {
       let rows = await this.rawCrawler.documentHeaders(gallery, page++);
-      for(let i=0; rows.length === 0; ++i){
-        rows = await this.rawCrawler.documentHeaders(gallery, page-1);
-        console.log(gallery, page, i);
-        if(i === 5)
-          throw Error("ip ban");
-      }
+      console.log(gallery, page-1, lastDocument.id);
+      if(rows.length === 0)
+        break;
+      if(rows[rows.length-1].id  === lastDocument.id)
+        break;
       if(rows[0].id >= lastDocument.id)
         rows.splice(0, rows.findIndex(r => r.id === lastDocument.id));
       res.push(...rows);

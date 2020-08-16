@@ -2,15 +2,19 @@ jest.setTimeout(300000);
 import 'core-js';
 import { Crawler, Document } from '../src/index';
 describe('document headers', () => {
-  const crawler = new Crawler();
+  const crawler = new Crawler(100, 10);
   const slowCrawler = new Crawler(1, 10);
   it('gallery documentHeader with comments', async () => {
     let iter = await crawler.documentHeaderWithCommentAsyncIterator({
-      gallery: {id: 'longsword', isMiner: true},
-      limit: 1000,
+      gallery: {id: 'zkdhfn', isMiner: true},
+      //limit: 1000,
+      lastDocumentId: 7325 - 1000,
     });
     let res = [];
+    let i = 0;
     for await (const doc of iter) {
+      if(++i % 10 == 0) 
+        console.log(i);
       res.push(doc);
     }
     console.log(res.length);
