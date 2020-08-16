@@ -6,8 +6,8 @@ describe('document headers', () => {
   const slowCrawler = new Crawler(1, 10);
   it('gallery documentHeader with comments', async () => {
     let iter = await crawler.documentHeaderWithCommentAsyncIterator({
-      gallery: {id: 'aoegame', isMiner: true},
-      limit: 100,
+      gallery: {id: 'longsword', isMiner: true},
+      limit: 1000,
     });
     let res = [];
     for await (const doc of iter) {
@@ -15,6 +15,7 @@ describe('document headers', () => {
     }
     console.log(res.length);
   })
+  /*
   it('type check', async() => {
     const res = await crawler.documentHeaders({
       gallery: {id: 'programming', isMiner: false},
@@ -31,20 +32,6 @@ describe('document headers', () => {
     });
     expect(Math.abs(new Date().getTime() - res[0].createdAt.getTime())).toBeLessThanOrEqual(3*60*60*1000);
   });
-  /*
-  it('major gallery document', async () => {
-    let res = await crawler.document({
-      gallery: {id: 'baseball_new9', isMiner: false},
-      id: 1980930,
-    });
-  })
-  it('minor gallery document', async () => {
-    let res = await crawler.document({
-      gallery: {id: 'aoegame', isMiner: true},
-      id: 14197464,
-    });
-  });
-  */
   it('minor gallery first page', async () => {
     const res = await crawler.documentHeaders({
       gallery: {id: 'aoegame', isMiner: true },
@@ -180,4 +167,5 @@ describe('document headers', () => {
     const res = await crawler.activeGalleryIndexes();
     expect(res).not.toBe(null);
   });
+  */
 });
