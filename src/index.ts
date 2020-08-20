@@ -1,12 +1,15 @@
 import * as Request from './request';
 import Xray from 'x-ray';
 import * as entities from 'entities';
-import { PromiseIterator } from './util';
+import { PromiseIterator, koreaDateParse } from './util';
 
-const koreaDateParse = (val: string): Date => {
- let date = new Date(val);
- return new Date(date.getTime() + (date.getTimezoneOffset() + 540) * 60 * 1000);
-}
+
+/*const koreaDateParse = (val: string): Date => {
+  let date: Date;
+  let now = new Date();
+  date = new Date(val);
+  return new Date(date.getTime() + (date.getTimezoneOffset() + 540) * 60 * 1000);
+}*/
 
 const xray = Xray({
   filters: {
@@ -32,21 +35,26 @@ export interface Comment {
   parent?: Comment | null;
   createdAt: Date;
   document: DocumentIndex;
+  contents?: string;
+  voiceCopyId?: string;
+  dccon?: {
+    imageUrl: string,
+    name?: string,
+    packageId: string,
+  }
 }
+/*
 export interface TextComment extends Comment {
   contents: string;
 }
 export interface VoiceComment extends Comment {
-  voiceCopyId: string;
 }
 export interface Dccon {
-  imageUrl: string;
-  name: string;
-  packageId: string;
 }
 export interface DcconComment extends Comment {
   dccon: Dccon;
 }
+*/
 
 /**
  * Document header fetched from gallery board
@@ -64,6 +72,12 @@ export interface DocumentHeader {
   hasVideo: boolean;
   isRecommend: boolean;
   createdAt: Date;
+}
+export interface DocumentBody {
+  contents: string;
+  dislikeCount: number;
+  staticLikeCount: number;
+  comments: Comment[];
 }
 export interface Document extends DocumentHeader {
   contents: string;
@@ -180,9 +194,53 @@ class RawCrawler {
         } as GalleryIndex)
     );
   }
+  async documentAlbumHeaders(
+    gallery: GalleryIndex,
+    page: number,
+  ): Promise<DocumentHeader[]> {
+    const res = await this.request.get(
+      `${this.host}${
+        gallery.isMiner ? '/mgallery/' : '/'
+      }board/lists?id=${gallery.id}&list_num=30&page=${page}&board_type=album`
+    );
+    if (!this.e_s_n_o)
+      this.e_s_n_o = await xray(res.data, 'input#e_s_n_o@value');
+    let headRows = await xray(res.data, 'table.gall_list tbody tr.album_head', [
+      {
+        id: '@data-no | number',
+        title: '.gall_tit a',
+        subject: '.gall_subject',
+        class: '.gall_tit a em@class | lastClass',
+        commentCount: '.gall_comment | number',
+        author: {
+          nickname:'.gall_writer@data-nick',
+          ip: '.gall_writer@data-ip',
+          id: '.gall_writer@data-uid',
+        },
+        createdAt: '.gall_date',
+        viewCount: '.gall_count | number',
+        likeCount: '.gall_recommend | number',
+      },
+    ]);
+    let bodyRows = await xray(res.data, 'table.gall_list tbody tr.album_body', [
+      {
+        contents: '.album_txtbox' 
+      },
+    ])
+    let rows = headRows.map((row:any, i:number) => Object.assign(row, bodyRows[i])).filter((r:any) => r.id && r.insertedSubject === undefined);
+    for (const row of rows) {
+      row.hasImage = row.class.endsWith('pic') || row.class.endsWith('img');
+      row.hasVideo = row.class.endsWith('movie');
+      row.isRecommend = row.class.startsWith('icon_recom');
+      delete row.class;
+      row.gallery = gallery;
+      row.createdAt = koreaDateParse(row.createdAt);
+    }
+    return rows as DocumentHeader[];
+  }
   async documentHeaders(
     gallery: GalleryIndex,
-    page: number
+    page: number,
   ): Promise<DocumentHeader[]> {
     const res = await this.request.get(
       `${this.host}${
@@ -220,6 +278,41 @@ class RawCrawler {
     }
     return rows as DocumentHeader[];
   }
+  async documentBody(index: DocumentIndex): Promise<DocumentBody> {
+    if(!this.request.defaults.jar.getCookiesSync(`${this.host}`).length)
+      await this.documentHeaders(index.gallery, 1);
+    let cookie = this.request.defaults.jar.getCookiesSync(`${this.host}`);
+    let ci_t = cookie.find((c: {key: string, value: string}) => c.key === 'ci_c').value
+    const option = {
+      method: 'post',
+      url: `${this.host}/board/view/get`,
+      data: {
+        id: index.gallery.id,
+        no: ''+index.id,
+        e_s_n_o: this.e_s_n_o,
+        ci_t,
+      },
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        Referer: `https://gall.dcinside.com/board/lists?id=${index.gallery.id}&page=1&board_type=album`,
+        Cookie: this.request.defaults.jar.getCookieStringSync(`${this.host}`),
+        DNT: '1',
+      },
+    }
+    const res = await this.request(option);
+    if(res.data.result !== 'success')
+      throw Error('fail to get document: ' + JSON.stringify(res.data));
+    let d = res.data;
+    
+    return {
+      contents: d.content.memo.replace(/<br\/?>/g, "\n").replace(/<\/?div[^>]*>/g, "\n").replace(/<\/?p[^>]*>/g, "\n").replace(/<[^>]*>/g, "").split('\n').map((s: string) => s.trim()).filter((t: string) => t).join('\n') as string,
+      dislikeCount: parseInt(d.content.nonrecommend) as number,
+      staticLikeCount: parseInt(d.content.backup3_count) as number,
+      comments: parseInt(d.content.total_comment) == 0? []: await this.comments(index),
+    } as DocumentBody;
+  }
+  /*
   async document(
     index: DocumentIndex,
   ): Promise<Document> {
@@ -265,6 +358,7 @@ class RawCrawler {
       doc.subject = doc.subject.slice(1, -1);
     return doc;
   }
+  */
   async comments(
     document: DocumentIndex,
   ): Promise<Comment[]> {
@@ -325,22 +419,16 @@ class RawCrawler {
         };
         if (comm.depth === 0) lastComment = comment;
         if (comm.memo.startsWith('<img')) {
-          comment = Object.assign(comment, {
-            dccon: {
-              imageUrl: comm.memo.match(/src=['"]([^"']*)['"]/)[1] as string,
-              name: (comm.memo.match(/title=['"]([^"']*)['"]/), [''])[1] as string,
-              packageId: comm.memo.match(/no=([^&"/]*)/)[1] as string,
-            },
-          }) as DcconComment;
+          comment.dccon = {
+            imageUrl: comm.memo.match(/src=['"]([^"']*)['"]/)[1] as string,
+            name: (comm.memo.match(/title=['"]([^"']*)['"]/), [''])[1] as string,
+            packageId: comm.memo.match(/no=([^&"/]*)/)[1] as string,
+          };
         } else if (comm.vr_player) {
-          comment = Object.assign(comment, {
-            voiceCopyId: (comm.vr_player.match(/vr=([^&"/]*)/) ||
-              comm.vr_player.match(/url=['"]([^"']*)['"]/))[1] as string,
-          }) as VoiceComment;
+          comment.voiceCopyId = (comm.vr_player.match(/vr=([^&"/]*)/) ||
+              comm.vr_player.match(/url=['"]([^"']*)['"]/))[1] as string;
         } else {
-          comment = Object.assign(comment, {
-            contents: comm.memo as string,
-          }) as TextComment;
+          comment.contents = comm.memo as string;
         }
         return comment;
       })
@@ -371,6 +459,40 @@ export class Crawler {
   rawCrawler: RawCrawler;
   constructor(rps?: number, retries?: number, host?: string) {
     this.rawCrawler = new RawCrawler(rps, retries, host);
+  }
+  async documentAlbumHeaders(
+    options: CrawlerDocumentHeaderOptions
+  ): Promise<DocumentHeader[]> {
+    let { 
+      gallery,
+      page = 1,
+      limit = 
+        options.limit === undefined && options.lastDocumentId !== undefined || options.lastDocumentCreatedAt !== undefined? 
+        Infinity : 100,
+      lastDocumentCreatedAt = new Date(0),
+      lastDocumentId = 0,
+    } = options;
+    let res: DocumentHeader[] = await this.rawCrawler.documentAlbumHeaders(gallery, page++);
+    let lastDocument = res[res.length-1];
+    while(
+      lastDocument.createdAt > lastDocumentCreatedAt && 
+      lastDocument.id > lastDocumentId && 
+      res.length < limit) {
+      let rows = await this.rawCrawler.documentAlbumHeaders(gallery, page++);
+      if(rows.length === 0)
+        break;
+      if(rows[rows.length-1].id  === lastDocument.id)
+        break;
+      if(rows[0].id >= lastDocument.id)
+        rows.splice(0, rows.findIndex(r => r.id === lastDocument.id));
+      res.push(...rows);
+      lastDocument = res[res.length-1];
+    }
+    return res
+      .filter(row => 
+        row.createdAt > lastDocumentCreatedAt && 
+        row.id > lastDocumentId)
+      .slice(0, limit);
   }
   async documentHeaders(
     options: CrawlerDocumentHeaderOptions
@@ -406,9 +528,12 @@ export class Crawler {
         row.id > lastDocumentId)
       .slice(0, limit);
   }
-  async document(index: DocumentIndex): Promise<Document> {
-    return this.rawCrawler.document(index);
+  async documentBody(
+    index: DocumentIndex
+  ): Promise<DocumentBody> {
+    return await this.rawCrawler.documentBody(index);
   }
+  /*
   async *documentHeaderWithCommentAsyncIterator(options: CrawlerDocumentHeaderOptions): AsyncGenerator<DocumentHeader & { comments: Comment[] }> {
     let headers = await this.documentHeaders(options);
     let i=0;
@@ -444,6 +569,7 @@ export class Crawler {
     }
     return;
   }
+  */
   /*
   async documentHeaders(
     _options: CrawlerDocumentHeaderOptions

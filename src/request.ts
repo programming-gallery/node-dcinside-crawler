@@ -1,6 +1,8 @@
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import qs from 'qs';
+import axiosCookieJarSupport from 'axios-cookiejar-support';
+import * as tough from 'tough-cookie';
 //import axiosRateLimit from 'axios-rate-limit';
 const axiosRateLimit = require('axios-rate-limit');
 
@@ -18,6 +20,8 @@ export function create(rps=10, retries=5){
       perMilliseconds: 1000,
     }
   );
+  axiosCookieJarSupport(request);
+  request.defaults.jar = new tough.CookieJar();
   axiosRetry(request, {
     retries,
     retryDelay: axiosRetry.exponentialDelay, 

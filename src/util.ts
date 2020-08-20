@@ -54,3 +54,24 @@ export async function* PromiseIterator(promises: Promise<any>[]) {
     yield await q.pop();
   }
 }
+
+export function koreaDateParse(val: string): Date {
+  let date: Date;
+  let now = new Date();
+  now = new Date(now.getTime() + 540 * 60 * 1000);
+  if(/^\d\d\/\d\d\/\d\d$/.exec(val))
+    date = new Date('20' + val);
+  else if(/^\d\d\.\d\d\.\d\d$/.exec(val))
+    date = new Date('20' + val);
+  else if(/^\d\d\.\d\d$/.exec(val))
+    date = new Date(now.getFullYear() + '.' + val);
+  else if(/^\d\d\/\d\d$/.exec(val))
+    date = new Date(now.getFullYear() + '/' + val);
+  else if(/^\d\d-d\d$/.exec(val))
+    date = new Date(now.getFullYear() + '.' + val);
+  else if(/^\d\d:\d\d$/.exec(val))
+    date = new Date(now.toISOString().slice(0, 10) + ' ' + val);
+  else
+    date = new Date(val + ' ');
+  return new Date(date.getTime() + (date.getTimezoneOffset() + 540) * 60 * 1000);
+}

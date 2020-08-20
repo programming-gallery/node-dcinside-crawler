@@ -4,7 +4,7 @@ import { Crawler, Document } from '../src/index';
 describe('document headers', () => {
   const crawler = new Crawler(100, 10);
   const slowCrawler = new Crawler(1, 10);
-  it('gallery documentHeader with comments', async () => {
+  /*it('gallery documentHeader with comments', async () => {
     let iter = await crawler.documentHeaderWithCommentAsyncIterator({
       gallery: {id: 'zkdhfn', isMiner: true},
       //limit: 1000,
@@ -18,7 +18,7 @@ describe('document headers', () => {
       res.push(doc);
     }
     console.log(res.length);
-  })
+  })*/
   /*
   it('type check', async() => {
     const res = await crawler.documentHeaders({
@@ -36,12 +36,37 @@ describe('document headers', () => {
     });
     expect(Math.abs(new Date().getTime() - res[0].createdAt.getTime())).toBeLessThanOrEqual(3*60*60*1000);
   });
-  it('minor gallery first page', async () => {
-    const res = await crawler.documentHeaders({
+  */
+  it('document body', async () => {
+    const header = await crawler.documentHeaders({
+      gallery: {id: 'programming', isMiner: false },
+    });
+    let bodies = [];
+    for(let head of header){
+      bodies.push(await crawler.documentBody(head));
+      console.log(head.title);
+    }
+    console.log(bodies);
+    /*console.log(res);
+    expect(res.length).toBe(100);*/
+  })
+  /*
+  it('minor gallery album', async () => {
+    const res = await crawler.documentAlbumHeaders({
       gallery: {id: 'aoegame', isMiner: true },
     });
+    console.log(res);
     expect(res.length).toBe(100);
   })
+  */
+  /*it('minor gallery first page', async () => {
+    const res = await crawler.documentHeaders({
+      gallery: {id: 'onceagain', isMiner: true },
+    });
+    console.log(res);
+    expect(res.length).toBe(100);
+  })*/
+  /*
   it('first page', async () => {
     const res = await crawler.documentHeaders({
       gallery: {id: 'programming', isMiner: false},
