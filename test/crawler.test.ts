@@ -37,6 +37,7 @@ describe('document headers', () => {
     expect(Math.abs(new Date().getTime() - res[0].createdAt.getTime())).toBeLessThanOrEqual(3*60*60*1000);
   });
   */
+ /*
   it('document body', async () => {
     const header = await crawler.documentHeaders({
       gallery: {id: 'programming', isMiner: false },
@@ -47,9 +48,8 @@ describe('document headers', () => {
       console.log(head.title);
     }
     console.log(bodies);
-    /*console.log(res);
-    expect(res.length).toBe(100);*/
   })
+  */
   /*
   it('minor gallery album', async () => {
     const res = await crawler.documentAlbumHeaders({
@@ -66,7 +66,6 @@ describe('document headers', () => {
     console.log(res);
     expect(res.length).toBe(100);
   })*/
-  /*
   it('first page', async () => {
     const res = await crawler.documentHeaders({
       gallery: {id: 'programming', isMiner: false},
@@ -196,5 +195,4 @@ describe('document headers', () => {
     const res = await crawler.activeGalleryIndexes();
     expect(res).not.toBe(null);
   });
-  */
 });

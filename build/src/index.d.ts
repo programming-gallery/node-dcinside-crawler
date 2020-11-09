@@ -9,20 +9,13 @@ export interface Comment {
     parent?: Comment | null;
     createdAt: Date;
     document: DocumentIndex;
-}
-export interface TextComment extends Comment {
-    contents: string;
-}
-export interface VoiceComment extends Comment {
-    voiceCopyId: string;
-}
-export interface Dccon {
-    imageUrl: string;
-    name: string;
-    packageId: string;
-}
-export interface DcconComment extends Comment {
-    dccon: Dccon;
+    contents?: string;
+    voiceCopyId?: string;
+    dccon?: {
+        imageUrl: string;
+        name?: string;
+        packageId: string;
+    };
 }
 /**
  * Document header fetched from gallery board
@@ -40,6 +33,12 @@ export interface DocumentHeader {
     hasVideo: boolean;
     isRecommend: boolean;
     createdAt: Date;
+}
+export interface DocumentBody {
+    contents: string;
+    dislikeCount: number;
+    staticLikeCount: number;
+    comments: Comment[];
 }
 export interface Document extends DocumentHeader {
     contents: string;
@@ -87,8 +86,9 @@ declare class RawCrawler {
     weeklyActiveMinorGalleryIndexes(): Promise<GalleryIndex[]>;
     realtimeActiveMinorGalleryIndexes(): Promise<GalleryIndex[]>;
     realtimeActiveMajorGalleryIndexes(): Promise<GalleryIndex[]>;
+    documentAlbumHeaders(gallery: GalleryIndex, page: number): Promise<DocumentHeader[]>;
     documentHeaders(gallery: GalleryIndex, page: number): Promise<DocumentHeader[]>;
-    document(index: DocumentIndex): Promise<Document>;
+    documentBody(index: DocumentIndex): Promise<DocumentBody>;
     comments(document: DocumentIndex): Promise<Comment[]>;
     _comments(doc: DocumentIndex, page?: number): Promise<{
         comments: Comment[];
@@ -109,16 +109,9 @@ export interface CrawlerCommentsOptions {
 export declare class Crawler {
     rawCrawler: RawCrawler;
     constructor(rps?: number, retries?: number, host?: string);
+    documentAlbumHeaders(options: CrawlerDocumentHeaderOptions): Promise<DocumentHeader[]>;
     documentHeaders(options: CrawlerDocumentHeaderOptions): Promise<DocumentHeader[]>;
-    document(index: DocumentIndex): Promise<Document>;
-    documentHeaderWithCommentAsyncIterator(options: CrawlerDocumentHeaderOptions): AsyncGenerator<DocumentHeader & {
-        comments: Comment[];
-    }>;
-    robustDocumentAsyncIterator(options: CrawlerDocumentHeaderOptions): AsyncGenerator<{
-        success: boolean;
-        result?: Document;
-        error?: any;
-    }>;
+    documentBody(index: DocumentIndex): Promise<DocumentBody>;
     comments(index: DocumentIndex): Promise<Comment[]>;
     activeGalleryIndexes(): Promise<GalleryIndex[]>;
 }

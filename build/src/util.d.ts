@@ -7,3 +7,4 @@ export declare class AsyncQueue {
     pop(): Promise<any>;
 }
 export declare function PromiseIterator(promises: Promise<any>[]): AsyncGenerator<any, void, unknown>;
+export declare function koreaDateParse(val: string): Date;

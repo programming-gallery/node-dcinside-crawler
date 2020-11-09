@@ -118,7 +118,7 @@ export type DocumentIndex = Pick<DocumentHeader, 'id' | 'gallery'> &
  */
 export type GalleryIndex = Pick<Gallery, 'id' | 'isMiner'> & Partial<Gallery>;
 
-class RawCrawler {
+export class RawCrawler {
   host = '';
   e_s_n_o = '';
   request: any;

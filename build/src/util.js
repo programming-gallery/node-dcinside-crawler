@@ -24,7 +24,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PromiseIterator = exports.AsyncQueue = void 0;
+exports.koreaDateParse = exports.PromiseIterator = exports.AsyncQueue = void 0;
 //const Queue = require("denque");
 const denque_1 = __importDefault(require("denque"));
 //const PriorityQueue = require("tinyqueue");
@@ -62,4 +62,25 @@ function PromiseIterator(promises) {
     });
 }
 exports.PromiseIterator = PromiseIterator;
+function koreaDateParse(val) {
+    let date;
+    let now = new Date();
+    now = new Date(now.getTime() + 540 * 60 * 1000);
+    if (/^\d\d\/\d\d\/\d\d$/.exec(val))
+        date = new Date('20' + val);
+    else if (/^\d\d\.\d\d\.\d\d$/.exec(val))
+        date = new Date('20' + val);
+    else if (/^\d\d\.\d\d$/.exec(val))
+        date = new Date(now.getFullYear() + '.' + val);
+    else if (/^\d\d\/\d\d$/.exec(val))
+        date = new Date(now.getFullYear() + '/' + val);
+    else if (/^\d\d-d\d$/.exec(val))
+        date = new Date(now.getFullYear() + '.' + val);
+    else if (/^\d\d:\d\d$/.exec(val))
+        date = new Date(now.toISOString().slice(0, 10) + ' ' + val);
+    else
+        date = new Date(val + ' ');
+    return new Date(date.getTime() + (date.getTimezoneOffset() + 540) * 60 * 1000);
+}
+exports.koreaDateParse = koreaDateParse;
 //# sourceMappingURL=util.js.map
