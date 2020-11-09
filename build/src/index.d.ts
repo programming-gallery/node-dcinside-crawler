@@ -77,7 +77,7 @@ export declare type DocumentIndex = Pick<DocumentHeader, 'id' | 'gallery'> & Par
  * Minimum Gallery information to fetch related data from dcinside
  */
 export declare type GalleryIndex = Pick<Gallery, 'id' | 'isMiner'> & Partial<Gallery>;
-declare class RawCrawler {
+export declare class RawCrawler {
     host: string;
     e_s_n_o: string;
     request: any;
@@ -115,4 +115,3 @@ export declare class Crawler {
     comments(index: DocumentIndex): Promise<Comment[]>;
     activeGalleryIndexes(): Promise<GalleryIndex[]>;
 }
-export {};
